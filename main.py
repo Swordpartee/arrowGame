@@ -1,6 +1,7 @@
 import pygame as py
 import random as r
 import time as t
+import json
 
 py.font.init()
 
@@ -23,43 +24,62 @@ failTime = 0
 activePattern = []
 pattern = []
 
+def nextPattern(parrternKey):
+    activePattern.append(parrternKey)
+    window.fill((0,0,0))
+    py.display.update()
+    t.sleep(0.05)
+    py.draw.polygon(window,arrowDict[parrternKey][0],arrowDict[parrternKey][2])
+    py.display.update()
+    t.sleep(0.4)
+    
+def clickKey(key):
+    global failTime
+    if activePattern[0] == key:
+        activePattern.pop(0)
+        py.draw.polygon(window,arrowDict[key][0],arrowDict[key][2])
+        py.display.update()
+        t.sleep(0.2)
+        py.draw.polygon(window,arrowDict[key][1],arrowDict[key][2])
+        py.display.update()
+        failTime = 0
+    else:
+        quitProgram()
+        
+def patternNext():
+    global failTime
+    pattern.append(r.choice(list(arrowDict.keys())))
+    for patternKey in pattern:
+        nextPattern(patternKey)
+    failTime = 0
+    for i in list(arrowDict.keys()):
+        py.draw.polygon(window,arrowDict[i][1],arrowDict[i][2])
+    py.display.update()
+    py.event.clear()
+    
+def quitProgram():
+    print("Your score was: " + str(len(pattern) - 1))
+    with open("Leaderboard.JSON", "r") as infile:
+        leaderboard = json.load(infile)
+    leaderboard[input("What is your name? ")] = str(len(pattern) - 1)
+    with open("Leaderboard.JSON", "w") as outfile:
+        json.dump(leaderboard, outfile)
+    py.quit()
+    quit()  
+    
+def checkClick():
+    for event in py.event.get():
+        if event.type == py.KEYDOWN and event.key in list(arrowDict.keys()):
+            clickKey(event.key)
+    
 while True:
     FPSClock.tick(FPS)
     if len(activePattern) == 0:
-        pattern.append(r.choice((py.K_UP,py.K_DOWN,py.K_LEFT,py.K_RIGHT)))
-        for i in pattern:
-            activePattern.append(i)
-            window.fill((0,0,0))
-            py.display.update()
-            t.sleep(0.05)
-            py.draw.polygon(window,arrowDict[i][0],arrowDict[i][2])
-            py.display.update()
-            t.sleep(0.4)
-
-        failTime = 0
-        for i in (py.K_UP,py.K_DOWN,py.K_LEFT,py.K_RIGHT):
-            py.draw.polygon(window,arrowDict[i][1],arrowDict[i][2])
-        py.display.update()
-        py.event.clear()
+        patternNext()
     else:         
-        for event in py.event.get():
-            if event.type == py.KEYDOWN:
-                if event.key in [py.K_UP,py.K_DOWN,py.K_LEFT,py.K_RIGHT]:
-                    if activePattern[0] == event.key:
-                        activePattern.pop(0)
-                        py.draw.polygon(window,arrowDict[event.key][0],arrowDict[event.key][2])
-                        py.display.update()
-                        t.sleep(0.2)
-                        py.draw.polygon(window,arrowDict[event.key][1],arrowDict[event.key][2])
-                        py.display.update()
-                        failTime = 0
-                    else:
-                        print("Your score was: " + str(len(pattern) - 1))
-                        py.quit()
-                        quit()
-        if failTime == 50:
-            print("Your score was: " + str(len(pattern) - 1))
-            py.quit()
-            quit()        
-        else:
-            failTime += 1 
+        checkClick()
+        
+    if failTime == 50:
+        quitProgram()      
+    else:
+        failTime += 1 
